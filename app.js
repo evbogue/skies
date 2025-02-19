@@ -4,10 +4,40 @@ import { human } from './human.js'
 const API = "https://public.api.bsky.app/"
 const DIR = "https://plc.directory/"
 
-//const getHandle = async (did) => {
-//  const profile = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?repo=${resolve.did}&collection=app.bsky.actor.profile`).then(r => r.json())
-//  const name = profile.records[0].value.displayName
-//}
+const renderPost = async (posturi, screen) => {
+  const div = h('div', {classList: 'message'})
+  const post = await getPost(posturi)
+  //div.appendChild(h('pre', [JSON.stringify(post)]))
+
+  const reply = h('div')
+  const meta = h('div', [
+    h('a', {href: '#' + post.uri, style: 'float: right;'}, [human(new Date(post.record.createdAt))]),
+    h('img', {src: post.author.avatar, classList: 'avatar'}),
+    h('a', {href: '#' + post.author.handle}, [post.author.displayName]),
+    ' ',
+    h('code', [post.author.handle]),
+    reply
+  ])
+  div.appendChild(meta)
+
+  const content = h('div', [post.record.text])
+  div.appendChild(content)
+
+  screen.appendChild(div)
+  if (post.record.reply) {
+    //console.log(post.record.reply)
+    const replyPost = await getPost(post.record.reply.root.uri)
+    if (replyPost) {
+      const rep = h('div', [
+        ' ↲ ',
+        h('a', {href: '#' + replyPost.author.handle}, [replyPost.author.displayName]),
+        ' | ',
+        h('a', {href: '#' + replyPost.uri}, [replyPost.record.text.substring(0, 24)])
+      ])
+      reply.parentNode.replaceChild(rep, reply)
+    }
+  }
+}
 
 const getPost = async (uri) => {
   const url = `${API}xrpc/app.bsky.feed.getPosts?uris=${uri}`
@@ -24,9 +54,11 @@ const route = async () => {
   
   const src = window.location.hash.substring(1)
 
-  if (src) {
+  if (src.startsWith('at://did:plc:')) {
+    await renderPost(src, screen)
+  } else if (src) {
     await profile(src, screen) 
-  } 
+  }
 
   if (src === '') {
     const input = h('input', {placeholder: 'Handle, ex: evbogue.com'})
@@ -56,33 +88,7 @@ const profile = async (src, screen) => {
       const name = profile.records[0].value.displayName
       const posts = await fetch(`${pds}/xrpc/com.atproto.repo.listRecords?repo=${resolve.did}&collection=app.bsky.feed.post&limit=100`).then(r => r.json())
       for (const post of posts.records) {
-        const reply = h('div')
-        const div = h('div', {classList: 'message'}, [
-          h('span', {style: 'float: right;'}, [human(new Date(post.value.createdAt))]),
-          h('a', {href: '#' + repo.handle}, [name]),
-          ' ',
-          h('span', [repo.handle]),
-          reply,
-          h('div', [post.value.text])
-        ])
-        screen.appendChild(div)
-        if (post.value.reply) {
-          const replyPost = await getPost(post.value.reply.root.uri)
-          if (replyPost) {
-            console.log(replyPost)
-            const rep = h('div', [
-              h('a', {href: '#' + replyPost.author.handle}, ['@' + replyPost.author.displayName]),
-              ' ↲ ',
-              h('a', {href: '#' + replyPost.uri}, [replyPost.record.text.substring(0, 24)])
-            ])
-            reply.parentNode.replaceChild(rep, reply)
-          }
-        }
-
-        if (post.value.embed && post.value.embed.external) {
-          div.appendChild(h('a', {href: post.value.embed.external.uri}, [post.value.embed.external.title]))
-        }
-        //div.appendChild(h('pre', [JSON.stringify(post)]))
+        await renderPost(post.uri, screen)
       }
     }
   } catch (err) { console.log(err)}
