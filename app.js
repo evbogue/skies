@@ -26,6 +26,13 @@ const route = async () => {
 
   if (src) {
     await profile(src, screen) 
+  } 
+
+  if (src === '') {
+    const input = h('input', {placeholder: 'Handle, ex: evbogue.com'})
+    screen.appendChild(h('div', [input, h('button', {onclick: () => {
+      if (input.value) {window.location.hash = input.value}
+    }}, ['Go'])]))
   }
 }
 
