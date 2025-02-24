@@ -58,7 +58,7 @@ const route = async () => {
   const oldscreen = document.getElementById('screen')
   if (oldscreen) {oldscreen.remove()}
   document.body.style = 'margin: 0;'
-  const screen = h('div', {id: 'screen', style: 'margin-left: auto; margin-right: auto; width: 680px; margin-top: 0;'})
+  const screen = h('div', {id: 'screen', style: 'margin-left: auto; margin-right: auto; width: 680px; max-width: 100%; margin-top: 0;'})
   document.body.appendChild(screen)
   
   const src = window.location.hash.substring(1)
